@@ -13,8 +13,8 @@ const NOTE_NAMES = [
   "G#"
 ];
 
-// We don't care about fundamenatls above 4kHz, so setting a lower sample rate
-// gives us finer-graned FFT buckets
+// We don't care about fundamentals above 4kHz, so setting a lower sample rate
+// gives us finer-grained FFT buckets
 const TARGET_SAMPLE_RATE = 8000;
 
 let dom_frequency;
