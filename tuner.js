@@ -1,4 +1,17 @@
-const NOTE_NAMES = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"]
+const NOTE_NAMES = [
+  "A",
+  "A#",
+  "B",
+  "C",
+  "C#",
+  "D",
+  "D#",
+  "E",
+  "F",
+  "F#",
+  "G",
+  "G#"
+];
 
 // We don't care about fundamenatls above 4kHz, so setting a lower sample rate
 // gives us finer-graned FFT buckets
@@ -9,7 +22,6 @@ let dom_rate;
 let dom_note;
 let dom_tune;
 
-
 const setup = () => {
   dom_frequency = document.getElementById("frequency");
   dom_rate = document.getElementById("rate");
@@ -17,28 +29,27 @@ const setup = () => {
   dom_tune = document.getElementById("tune");
 
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    navigator.mediaDevices.getUserMedia({
-      audio: true,
-    }).then(handleStream, err => {
-      console.error("Error calling getUserMedia", err);
-    });
-  };
+    navigator.mediaDevices
+      .getUserMedia({
+        audio: true
+      })
+      .then(handleStream, err => {
+        console.error("Error calling getUserMedia", err);
+      });
+  }
 
   if (navigator.wakeLock && navigator.wakeLock.request) {
     try {
       navigator.wakeLock
-        .request('screen')
-        .then(wakeLock =>
-          setTimeout(() => wakeLock.release(), 60000)
-        );
+        .request("screen")
+        .then(wakeLock => setTimeout(() => wakeLock.release(), 60000));
     } catch (err) {}
   }
 };
 
-
 const handleStream = stream => {
   const audioContext = new AudioContext({
-    sampleRate: TARGET_SAMPLE_RATE,
+    sampleRate: TARGET_SAMPLE_RATE
   });
 
   const analyser = audioContext.createAnalyser();
@@ -54,7 +65,6 @@ const handleStream = stream => {
 
   setInterval(tune(analyser, data), 500);
 };
-
 
 const tune = (analyser, data) => () => {
   analyser.getByteFrequencyData(data);
@@ -88,45 +98,35 @@ const tune = (analyser, data) => () => {
   document.body.className = semitonesToClassname(semitones, margin);
 };
 
-
-const frequencyToSemitones = frequency =>
-  12 * Math.log2(frequency / 440) + 69;
-
+const frequencyToSemitones = frequency => 12 * Math.log2(frequency / 440) + 69;
 
 const semitonesToNote = semitones => {
   const rounded = Math.round(semitones - 69);
 
-  const index = rounded >= 0
-    ? rounded % 12
-    : (12 + (rounded % 12)) % 12
+  const index = rounded >= 0 ? rounded % 12 : (12 + (rounded % 12)) % 12;
 
   return NOTE_NAMES[index];
-}
-
+};
 
 const errorPercentage = (semitones, margin) => {
   const rounded = Math.round(semitones);
 
   const cents = Math.round((semitones - rounded) * 100);
   const accuracy = Number.parseFloat(margin * 100).toFixed(1);
-  const sign = cents > 0 ? "+" : ""
+  const sign = cents > 0 ? "+" : "";
 
   return `${sign}${cents} cents ± ${accuracy}`;
-}
-
+};
 
 const semitonesToClassname = (semitones, margin) => {
   const rounded = Math.round(semitones);
-  const error = Math.abs(semitones-rounded);
+  const error = Math.abs(semitones - rounded);
 
-  const ok = margin > 0.05 ? margin : 0.05
+  const ok = margin > 0.05 ? margin : 0.05;
 
   if (error <= ok) {
     return "";
   }
 
-  return Math.round(semitones) > semitones
-    ? "flat"
-    : "sharp";
-}
-
+  return Math.round(semitones) > semitones ? "flat" : "sharp";
+};
