@@ -1,3 +1,5 @@
+"use strict";
+
 const NOTE_NAMES = [
   "A",
   "A#",
@@ -76,9 +78,18 @@ const tune = (analyser, data) => () => {
   let max = 0;
   let maxBucket = -1;
 
+
   data.forEach((value, bucket) => {
-    if (value > max) {
-      max = value;
+    let j = 2;
+    let product = value;
+    while (bucket > 1 && j*bucket < data.length && j < 8) {
+        product *= data[j*bucket];
+        j += 1;
+    }
+    const geoMean = Math.pow(product, 1 / (j-1));
+
+    if (geoMean > max) {
+      max = geoMean;
       maxBucket = bucket;
     }
   });
