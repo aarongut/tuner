@@ -19,6 +19,9 @@ const NOTE_NAMES = [
 // gives us finer-grained FFT buckets
 const TARGET_SAMPLE_RATE = 8000;
 
+// 2 minute screen timeout
+const TIMEOUT = 120;
+
 let dom_frequency;
 let dom_rate;
 let dom_note;
@@ -37,14 +40,26 @@ const setup = () => {
       })
       .then(handleStream, err => {
         console.error("Error calling getUserMedia", err);
-      });
+      })
+      .then(aquireWakeLock);
   }
 
+};
+
+const aquireWakeLock = ({ interval, stream}) => {
   if (navigator.wakeLock && navigator.wakeLock.request) {
     try {
       navigator.wakeLock
         .request("screen")
-        .then(wakeLock => setTimeout(() => wakeLock.release(), 60000));
+        .then(wakeLock => setTimeout(() => {
+          clearInterval(interval);
+          wakeLock.release();
+          stream.getTracks().forEach(track => track.stop());
+          dom_note.innerHTML = "Done";
+          dom_note.onclick = () => { window.location.reload() };
+          dom_tune.innerHTML = "";
+          dom_frequency.innerHTML = "";
+        }, TIMEOUT * 1000));
     } catch (err) {}
   }
 };
@@ -65,7 +80,9 @@ const handleStream = stream => {
   const source = audioContext.createMediaStreamSource(stream);
   source.connect(analyser);
 
-  setInterval(tune(analyser, data), 500);
+  const interval = setInterval(tune(analyser, data), 500);
+
+  return { interval, stream};
 };
 
 const tune = (analyser, data) => () => {
