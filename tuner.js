@@ -12,7 +12,7 @@ const NOTE_NAMES = [
   "F",
   "F#",
   "G",
-  "G#"
+  "G#",
 ];
 
 // We don't care about fundamentals above 4kHz, so setting a lower sample rate
@@ -36,37 +36,38 @@ const setup = () => {
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices
       .getUserMedia({
-        audio: true
+        audio: true,
       })
-      .then(handleStream, err => {
+      .then(handleStream, (err) => {
         console.error("Error calling getUserMedia", err);
       })
       .then(aquireWakeLock);
   }
-
 };
 
-const aquireWakeLock = ({ interval, stream}) => {
+const aquireWakeLock = ({ interval, stream }) => {
   if (navigator.wakeLock && navigator.wakeLock.request) {
     try {
-      navigator.wakeLock
-        .request("screen")
-        .then(wakeLock => setTimeout(() => {
+      navigator.wakeLock.request("screen").then((wakeLock) =>
+        setTimeout(() => {
           clearInterval(interval);
           wakeLock.release();
-          stream.getTracks().forEach(track => track.stop());
+          stream.getTracks().forEach((track) => track.stop());
           dom_note.innerHTML = "Done";
-          dom_note.onclick = () => { window.location.reload() };
+          dom_note.onclick = () => {
+            window.location.reload();
+          };
           dom_tune.innerHTML = "";
           dom_frequency.innerHTML = "";
-        }, TIMEOUT * 1000));
+        }, TIMEOUT * 1000)
+      );
     } catch (err) {}
   }
 };
 
-const handleStream = stream => {
+const handleStream = (stream) => {
   const audioContext = new AudioContext({
-    sampleRate: TARGET_SAMPLE_RATE
+    sampleRate: TARGET_SAMPLE_RATE,
   });
 
   const analyser = audioContext.createAnalyser();
@@ -82,7 +83,7 @@ const handleStream = stream => {
 
   const interval = setInterval(tune(analyser, data), 500);
 
-  return { interval, stream};
+  return { interval, stream };
 };
 
 const tune = (analyser, data) => () => {
@@ -95,15 +96,14 @@ const tune = (analyser, data) => () => {
   let max = 0;
   let maxBucket = -1;
 
-
   data.forEach((value, bucket) => {
     let j = 2;
     let product = value;
-    while (bucket > 1 && j*bucket < data.length && j < 8) {
-        product *= data[j*bucket];
-        j += 1;
+    while (bucket > 1 && j * bucket < data.length && j < 8) {
+      product *= data[j * bucket];
+      j += 1;
     }
-    const geoMean = Math.pow(product, 1 / (j-1));
+    const geoMean = Math.pow(product, 1 / (j - 1));
 
     if (geoMean > max) {
       max = geoMean;
@@ -126,9 +126,10 @@ const tune = (analyser, data) => () => {
   document.body.className = semitonesToClassname(semitones, margin);
 };
 
-const frequencyToSemitones = frequency => 12 * Math.log2(frequency / 440) + 69;
+const frequencyToSemitones = (frequency) =>
+  12 * Math.log2(frequency / 440) + 69;
 
-const semitonesToNote = semitones => {
+const semitonesToNote = (semitones) => {
   const rounded = Math.round(semitones - 69);
 
   const index = rounded >= 0 ? rounded % 12 : (12 + (rounded % 12)) % 12;
