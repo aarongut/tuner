@@ -53,10 +53,8 @@ const aquireWakeLock = ({ interval, stream }) => {
           clearInterval(interval);
           wakeLock.release();
           stream.getTracks().forEach((track) => track.stop());
-          dom_note.innerHTML = "Done";
-          dom_note.onclick = () => {
-            window.location.reload();
-          };
+          dom_note.innerHTML = "Restart";
+          dom_note.onclick = window.location.reload;
           dom_tune.innerHTML = "";
           dom_frequency.innerHTML = "";
         }, TIMEOUT * 1000)
