@@ -28,12 +28,15 @@ let dom_note;
 let dom_tune;
 
 const setup = () => {
+  document.body.onclick = undefined;
   dom_frequency = document.getElementById("frequency");
   dom_rate = document.getElementById("rate");
   dom_note = document.getElementById("note");
   dom_tune = document.getElementById("tune");
 
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  dom_note.innerHTML = "Listening...";
+
+  if (navigator?.mediaDevices?.getUserMedia) {
     navigator.mediaDevices
       .getUserMedia({
         audio: true,
@@ -46,18 +49,20 @@ const setup = () => {
 };
 
 const aquireWakeLock = ({ interval, stream }) => {
-  if (navigator.wakeLock && navigator.wakeLock.request) {
+  if (navigator?.wakeLock?.request) {
     try {
-      navigator.wakeLock.request("screen").then((wakeLock) =>
-        setTimeout(() => {
-          clearInterval(interval);
-          wakeLock.release();
-          stream.getTracks().forEach((track) => track.stop());
-          dom_note.innerHTML = "Restart";
-          dom_note.onclick = window.location.reload;
-          dom_tune.innerHTML = "";
-          dom_frequency.innerHTML = "";
-        }, TIMEOUT * 1000)
+      navigator.wakeLock.request("screen").then(
+        (wakeLock) =>
+          setTimeout(() => {
+            clearInterval(interval);
+            wakeLock.release();
+            stream.getTracks().forEach((track) => track.stop());
+            dom_note.innerHTML = "Tap to Start";
+            document.body.onclick = setup;
+            dom_tune.innerHTML = "";
+            dom_frequency.innerHTML = "";
+          }, TIMEOUT * 1000),
+        (err) => console.error("Error requesting wakeLock", err)
       );
     } catch (err) {}
   }
