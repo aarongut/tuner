@@ -127,6 +127,7 @@ const tune = (analyser, data) => () => {
   if (maxBucket === -1) return;
 
   // Ignore weak signals (noise threshold)
+  if (max === 0) return;
   let maxDb = 20 * Math.log10(max);
   if (maxDb < NOISE_THRESHOLD) return;
 
@@ -138,12 +139,17 @@ const tune = (analyser, data) => () => {
     let right = data[maxBucket + 1];
 
     delta = (0.5 * (right - left)) / (2 * center - left - right);
+    if (!Number.isFinite(delta)) delta = 0;
   }
 
   let frequency = (maxBucket + delta) * bucketWidth;
+  if (!Number.isFinite(frequency) || frequency <= 0) {
+    lastFrequency = null;
+    return;
+  }
 
   // Apply exponential smoothing
-  if (lastFrequency !== null) {
+  if (lastFrequency !== null && Number.isFinite(lastFrequency)) {
     frequency =
       SMOOTHING_FACTOR * lastFrequency + (1 - SMOOTHING_FACTOR) * frequency;
   }
