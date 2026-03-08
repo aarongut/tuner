@@ -19,13 +19,8 @@ const NOTE_NAMES = [
 // gives us finer-grained FFT buckets
 const TARGET_SAMPLE_RATE = 8000;
 const TIMEOUT = 120; // 2-minute screen timeout
-const NOISE_THRESHOLD = -60; // dBFS threshold for valid pitch detection
-const SMOOTHING_FACTOR = 0.8; // Smoothing factor for frequency stability
-const MAX_HISTORY = 5; // Moving median filter window size
 
 let dom_frequency, dom_rate, dom_note, dom_tune;
-let lastFrequency = null;
-const history = [];
 
 let wakeLock = null;
 
@@ -111,58 +106,24 @@ const tune = (analyser, data) => () => {
   let max = 0;
   let maxBucket = -1;
 
-  // Use harmonic sum instead of product for better fundamental detection
   data.forEach((value, bucket) => {
-    let sum = value;
-    for (let j = 2; j < 8 && j * bucket < data.length; j++) {
-      sum += data[j * bucket]; // Sum harmonics instead of multiplying
+    let j = 2;
+    let product = value;
+    while (bucket > 1 && j * bucket < data.length && j < 8) {
+      product *= data[j * bucket];
+      j += 1;
     }
+    const geoMean = Math.pow(product, 1 / (j - 1));
 
-    if (sum > max) {
-      max = sum;
+    if (geoMean > max) {
+      max = geoMean;
       maxBucket = bucket;
     }
   });
 
   if (maxBucket === -1) return;
 
-  // Ignore weak signals (noise threshold)
-  if (max === 0) return;
-  let maxDb = 20 * Math.log10(max);
-  if (maxDb < NOISE_THRESHOLD) return;
-
-  // Quadratic Peak Interpolation
-  let delta = 0;
-  if (maxBucket > 0 && maxBucket < data.length - 1) {
-    let left = data[maxBucket - 1];
-    let center = data[maxBucket];
-    let right = data[maxBucket + 1];
-
-    delta = (0.5 * (right - left)) / (2 * center - left - right);
-    if (!Number.isFinite(delta)) delta = 0;
-  }
-
-  let frequency = (maxBucket + delta) * bucketWidth;
-  if (!Number.isFinite(frequency) || frequency <= 0) {
-    lastFrequency = null;
-    return;
-  }
-
-  // Apply exponential smoothing
-  if (lastFrequency !== null && Number.isFinite(lastFrequency)) {
-    frequency =
-      SMOOTHING_FACTOR * lastFrequency + (1 - SMOOTHING_FACTOR) * frequency;
-  }
-  lastFrequency = frequency;
-
-  // Moving Median Filter
-  history.push(frequency);
-  if (history.length > MAX_HISTORY) {
-    history.shift();
-  }
-  frequency = history.slice().sort((a, b) => a - b)[
-    Math.floor(history.length / 2)
-  ];
+  const frequency = maxBucket * bucketWidth;
 
   dom_frequency.innerText = `${Number.parseFloat(frequency).toFixed(2)} Hz`;
 
@@ -178,11 +139,10 @@ const tune = (analyser, data) => () => {
 const frequencyToSemitones = (frequency) =>
   12 * Math.log2(frequency / 440) + 69;
 
-// Converts semitones to a note name
 const semitonesToNote = (semitones) => {
-  let noteIndex = Math.round(semitones) % 12;
-  if (noteIndex < 0) noteIndex += 12;
-  return NOTE_NAMES[noteIndex];
+  const rounded = Math.round(semitones - 69);
+  const index = rounded >= 0 ? rounded % 12 : (12 + (rounded % 12)) % 12;
+  return NOTE_NAMES[index];
 };
 
 // Calculates tuning error in cents
